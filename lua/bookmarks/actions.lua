@@ -25,6 +25,9 @@ local function get_git_root(filepath)
 end
 
 local function get_project_save_file(project_root)
+   if not project_root then
+      return config.save_file
+   end
    return project_root .. "/.bookmarks"
 end
 

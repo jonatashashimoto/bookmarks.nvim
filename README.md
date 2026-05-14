@@ -47,7 +47,7 @@ Here is an example with most of the default settings:
 require('bookmarks').setup {
   -- sign_priority = 8,  --set bookmark sign priority to cover other sign
   save_file = vim.fn.expand "$HOME/.bookmarks", -- bookmarks save file path
-  per_project = false, -- when true, use .bookmarks in each git project root
+  per_project = false, -- when true, use .bookmarks in each git project root (add to .gitignore if needed)
   keywords =  {
     ["@t"] = "☑️ ", -- mark annotation startswith @t ,signs this icon as `Todo`
     ["@w"] = "⚠️ ", -- mark annotation startswith @w ,signs this icon as `Warn`
