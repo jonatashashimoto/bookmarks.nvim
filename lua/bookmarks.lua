@@ -35,7 +35,7 @@ end
 M.attach = void(function(bufnr)
    bufnr = bufnr or current_buf()
    scheduler()
-   actions.loadBookmarks()
+   actions.switch_project(bufnr)
    if config.config.on_attach then
       config.config.on_attach(bufnr)
    end

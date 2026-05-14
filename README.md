@@ -1,6 +1,6 @@
 # bookmarks.nvim
 
-A Bookmarks Plugin With Global File Store For Neovim Written In Lua.
+A Bookmarks Plugin For Neovim Written In Lua.
 
 ## Features
 
@@ -47,6 +47,8 @@ Here is an example with most of the default settings:
 require('bookmarks').setup {
   -- sign_priority = 8,  --set bookmark sign priority to cover other sign
   save_file = vim.fn.expand "$HOME/.bookmarks", -- bookmarks save file path
+  per_project = false, -- when true, use one bookmark file per git project
+  per_project_dir = vim.fn.stdpath("data") .. "/bookmarks", -- directory for per-project bookmark files
   keywords =  {
     ["@t"] = "☑️ ", -- mark annotation startswith @t ,signs this icon as `Todo`
     ["@w"] = "⚠️ ", -- mark annotation startswith @w ,signs this icon as `Warn`
@@ -64,6 +66,25 @@ require('bookmarks').setup {
     map("n","ml",bm.bookmark_list) -- show marked file list in quickfix window
     map("n","mx",bm.bookmark_clear_all) -- removes all bookmarks
   end
+}
+```
+
+### Per-project persistence
+
+By default (`per_project = false`) bookmarks are stored in a single global `save_file`.
+
+When `per_project = true`, bookmarks are automatically separated by git project:
+
+- opening a file in a git project loads bookmarks from that project's file
+- switching to a file from another project saves current project bookmarks and loads the new project bookmarks
+- files outside a git project fall back to the global `save_file`
+
+Example:
+
+```lua
+require('bookmarks').setup {
+  per_project = true,
+  per_project_dir = vim.fn.stdpath("data") .. "/bookmarks",
 }
 ```
 

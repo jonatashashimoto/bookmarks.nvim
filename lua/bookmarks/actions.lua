@@ -7,8 +7,67 @@ local api = vim.api
 local current_buf = api.nvim_get_current_buf
 local M = {}
 local signs
+local active_save_file
+local active_project_root
+
+local function reset_cache()
+   config.cache = vim.deepcopy(schema.cache.default)
+   config.marks = nil
+end
+
+local function get_git_root(filepath)
+   local dir = vim.fn.fnamemodify(filepath, ":p:h")
+   local gitdir = vim.fn.finddir(".git", dir .. ";")
+   if gitdir == "" then
+      return nil
+   end
+   return vim.fn.fnamemodify(gitdir, ":p:h")
+end
+
+local function get_project_save_file(project_root)
+   vim.fn.mkdir(config.per_project_dir, "p")
+   return config.per_project_dir .. "/" .. vim.fn.sha256(project_root) .. ".json"
+end
+
+local function resolve_save_file(bufnr)
+   if not config.per_project then
+      return config.save_file, nil
+   end
+   local filepath = uv.fs_realpath(api.nvim_buf_get_name(bufnr))
+   if filepath == nil then
+      return config.save_file, nil
+   end
+   local project_root = get_git_root(filepath)
+   if not project_root then
+      return config.save_file, nil
+   end
+   return get_project_save_file(project_root), project_root
+end
+
+local function current_save_file()
+   return active_save_file or config.save_file
+end
+
+local function switch_project(bufnr)
+   bufnr = bufnr or current_buf()
+   local next_save_file, next_project_root = resolve_save_file(bufnr)
+   if active_save_file == next_save_file then
+      return
+   end
+   if active_save_file ~= nil then
+      M.saveBookmarks()
+   end
+   active_save_file = next_save_file
+   active_project_root = next_project_root
+   reset_cache()
+   M.loadBookmarks()
+end
+
 M.setup = function()
    signs = Signs.new(config.signs)
+   active_save_file = nil
+   active_project_root = nil
+   reset_cache()
 end
 
 M.detach = function(bufnr, keep_signs)
@@ -18,6 +77,7 @@ M.detach = function(bufnr, keep_signs)
 end
 
 local function updateBookmarks(bufnr, lnum, mark, ann)
+   switch_project(bufnr)
    local filepath = uv.fs_realpath(api.nvim_buf_get_name(bufnr))
    if filepath == nil then
       return
@@ -86,6 +146,7 @@ end
 
 M.bookmark_line = function(lnum, bufnr)
    bufnr = bufnr or current_buf()
+   switch_project(bufnr)
    local file = uv.fs_realpath(api.nvim_buf_get_name(bufnr))
    local marks = config.cache["data"][file] or {}
    return lnum and marks[tostring(lnum)] or marks
@@ -169,12 +230,14 @@ end
 
 M.refresh = function(bufnr)
    bufnr = bufnr or current_buf()
+   switch_project(bufnr)
    local file = uv.fs_realpath(api.nvim_buf_get_name(bufnr))
    if file == nil then
       return
    end
    local marks = config.cache.data[file]
    local signlines = {}
+   signs:remove(bufnr)
    if marks then
       for k, v in pairs(marks) do
          local ma = {
@@ -194,24 +257,40 @@ M.refresh = function(bufnr)
 end
 
 function M.loadBookmarks()
-   if utils.path_exists(config.save_file) then
-      utils.read_file(config.save_file, function(data)
+   local save_file = current_save_file()
+   if utils.path_exists(save_file) then
+      utils.read_file(save_file, function(data)
          config.cache = vim.json.decode(data)
          config.marks = data
       end)
+   else
+      reset_cache()
    end
 end
 
 function M.saveBookmarks()
    local data = vim.json.encode(config.cache)
    if config.marks ~= data then
-      utils.write_file(config.save_file, data)
+      utils.write_file(current_save_file(), data)
+      config.marks = data
    end
 end
 
 function M.bookmark_clear_all()
-    config.cache = schema.cache.default
-    M.saveBookmarks()
+   reset_cache()
+   M.saveBookmarks()
+end
+
+function M.switch_project(bufnr)
+   switch_project(bufnr)
+end
+
+function M.current_project_root()
+   return active_project_root
+end
+
+function M.current_save_file()
+   return current_save_file()
 end
 
 return M

@@ -15,6 +15,14 @@ M.schema = {
       type = "string",
       default = vim.fn.expand "$HOME/.bookmarks",
    },
+   per_project = {
+      type = "boolean",
+      default = false,
+   },
+   per_project_dir = {
+      type = "string",
+      default = vim.fn.stdpath("data") .. "/bookmarks",
+   },
    sign_priority = {
       type = "number",
       default = 6,
