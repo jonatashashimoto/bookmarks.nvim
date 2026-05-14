@@ -35,7 +35,14 @@ end
 M.attach = void(function(bufnr)
    bufnr = bufnr or current_buf()
    scheduler()
-   actions.loadBookmarks()
+
+   local cwd = vim.fn.getcwd()
+   assert(cwd, "no working directory")
+
+   local scope = config.config.scoped and cwd
+
+   actions.loadBookmarks(scope)
+
    if config.config.on_attach then
       config.config.on_attach(bufnr)
    end
