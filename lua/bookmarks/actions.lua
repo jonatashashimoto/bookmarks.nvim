@@ -237,7 +237,6 @@ M.refresh = function(bufnr)
    end
    local marks = config.cache.data[file]
    local signlines = {}
-   signs:remove(bufnr)
    if marks then
       for k, v in pairs(marks) do
          local ma = {
