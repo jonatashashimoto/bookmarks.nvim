@@ -1,4 +1,6 @@
-local tests = dofile("/home/runner/work/bookmarks.nvim/bookmarks.nvim/tests/project_persistence_spec.lua")
+local test_file = debug.getinfo(1, "S").source:sub(2)
+local test_dir = test_file:match("^(.*)/[^/]+$") or "."
+local tests = dofile(test_dir .. "/project_persistence_spec.lua")
 
 for i, test_fn in ipairs(tests) do
    local ok, err = pcall(test_fn)

@@ -1,3 +1,7 @@
+local test_file = debug.getinfo(1, "S").source:sub(2)
+local test_dir = test_file:match("^(.*)/[^/]+$")
+local repo_root = (test_dir and test_dir:match("^(.*)/tests$")) or "."
+
 local function create_vim_stub(ctx)
    local function project_hash(path)
       return ("hash_" .. path:gsub("[^%w]", "_"))
@@ -125,7 +129,7 @@ local function load_actions(ctx, config)
          ctx.files[path] = content
       end,
    }
-   return dofile("/home/runner/work/bookmarks.nvim/bookmarks.nvim/lua/bookmarks/actions.lua")
+   return dofile(repo_root .. "/lua/bookmarks/actions.lua")
 end
 
 local function assert_eq(actual, expected, message)
