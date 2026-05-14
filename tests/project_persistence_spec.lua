@@ -20,16 +20,20 @@ local function create_vim_stub(ctx)
             return path
          end,
       },
-      fn = {
-         finddir = function(_, start)
-            if start:find("/repoA") then
-               return "/repoA/.git"
+      fs = {
+         -- Mirrors the upward .git search performed by get_git_root.
+         -- Returns an absolute path so callers never need to resolve
+         -- against cwd (that was the root cause of the bug).
+         find = function(name, opts)
+            if name ~= ".git" then return {} end
+            local path = opts and opts.path or ""
+            for _, repo in ipairs({ "/repoA", "/repoB", "/repoC" }) do
+               if path:find(repo, 1, true) then return { repo .. "/.git" } end
             end
-            if start:find("/repoB") then
-               return "/repoB/.git"
-            end
-            return ""
+            return {}
          end,
+      },
+      fn = {
          fnamemodify = function(path, mod)
             if mod == ":p:h" then
                return path:match("^(.+)/[^/]+/?$") or path
@@ -198,8 +202,41 @@ local function test_non_project_file_falls_back_to_global_save_file()
    assert_eq(actions.current_project_root(), nil, "non-project files should not set a project root")
 end
 
+-- Regression: vim.fn.finddir can return a relative path such as ".git" when
+-- Neovim's cwd differs from the git root.  The old code passed that relative
+-- path directly to fnamemodify(":p:h"), which resolved it against the cwd and
+-- produced the wrong directory.  The fix uses vim.fs.find, which always
+-- returns absolute paths.  This test would have failed before the fix because
+-- the old finddir-based logic was never invoked for repoC (the stub returned
+-- "" for unknown repos), so get_git_root returned nil and the global save file
+-- was used instead of the project-local one.
+local function test_git_root_resolved_when_finddir_returns_relative_path()
+   local ctx = create_context()
+   local config = {
+      signs = {},
+      save_file = "/global.json",
+      per_project = true,
+      cache = { data = {} },
+      marks = nil,
+   }
+   local actions = load_actions(ctx, config)
+   actions.setup()
+
+   -- File lives inside /repoC (handled by the vim.fs.find stub above).
+   -- The real-world trigger: vim.fn.finddir returned the relative path ".git"
+   -- when Neovim's cwd was the plugin directory rather than the repo root.
+   ctx.buffers[1] = "/repoC/src/deeply/nested/file.lua"
+   actions.switch_project(1)
+
+   assert_eq(actions.current_project_root(), "/repoC",
+      "git root must be /repoC even when the file lives in a subdirectory")
+   assert_eq(actions.current_save_file(), "/repoC/.bookmarks",
+      "save file must be anchored at the git root, not at a relative path")
+end
+
 return {
    test_switches_between_project_files,
    test_saves_previous_project_and_resets_missing_project_cache,
    test_non_project_file_falls_back_to_global_save_file,
+   test_git_root_resolved_when_finddir_returns_relative_path,
 }
