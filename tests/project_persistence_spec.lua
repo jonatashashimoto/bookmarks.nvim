@@ -4,7 +4,7 @@ local repo_root = (test_dir and test_dir:match("^(.*)/tests$")) or "."
 
 local function create_vim_stub(ctx)
    local function project_hash(path)
-      return ("hash_" .. path:gsub("[^%w]", "_"))
+      return "hash_" .. path:gsub("[^%w]", "_")
    end
    local function deep_copy(value)
       if type(value) ~= "table" then
