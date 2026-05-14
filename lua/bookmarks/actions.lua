@@ -17,11 +17,14 @@ end
 
 local function get_git_root(filepath)
    local dir = vim.fn.fnamemodify(filepath, ":p:h")
-   local gitdir = vim.fn.finddir(".git", dir .. ";")
-   if gitdir == "" then
+   -- vim.fs.find always returns absolute paths, avoiding the fragile
+   -- relative-path resolution that vim.fn.finddir produces when cwd
+   -- differs from the git root.
+   local git_path = vim.fs.find(".git", { path = dir, upward = true })[1]
+   if not git_path then
       return nil
    end
-   return vim.fn.fnamemodify(gitdir, ":p:h")
+   return vim.fn.fnamemodify(git_path, ":p:h")
 end
 
 local function get_project_save_file(project_root)
