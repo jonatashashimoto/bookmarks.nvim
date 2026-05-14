@@ -25,8 +25,7 @@ local function get_git_root(filepath)
 end
 
 local function get_project_save_file(project_root)
-   vim.fn.mkdir(config.per_project_dir, "p")
-   return config.per_project_dir .. "/" .. vim.fn.sha256(project_root) .. ".json"
+   return project_root .. "/.bookmarks"
 end
 
 local function resolve_save_file(bufnr)

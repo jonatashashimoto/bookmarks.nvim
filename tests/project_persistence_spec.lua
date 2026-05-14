@@ -3,9 +3,6 @@ local test_dir = test_file:match("^(.*)/[^/]+$")
 local repo_root = (test_dir and test_dir:match("^(.*)/tests$")) or "."
 
 local function create_vim_stub(ctx)
-   local function project_hash(path)
-      return "hash_" .. path:gsub("[^%w]", "_")
-   end
    local function deep_copy(value)
       if type(value) ~= "table" then
          return value
@@ -39,10 +36,6 @@ local function create_vim_stub(ctx)
             end
             return path
          end,
-         mkdir = function(path)
-            ctx.directories[path] = true
-         end,
-         sha256 = project_hash,
       },
       api = {
          nvim_get_current_buf = function()
@@ -93,7 +86,6 @@ local function create_context()
       current_buf = 1,
       files = {},
       writes = {},
-      directories = {},
    }
    vim = create_vim_stub(ctx)
    return ctx
@@ -142,14 +134,13 @@ local function test_switches_between_project_files()
       signs = {},
       save_file = "/global.json",
       per_project = true,
-      per_project_dir = "/bookmarks",
       cache = { data = {} },
       marks = nil,
    }
    local actions = load_actions(ctx, config)
    actions.setup()
 
-   local repo_a_file = "/bookmarks/hash__repoA.json"
+   local repo_a_file = "/repoA/.bookmarks"
    ctx.files[repo_a_file] = "repoA_data"
 
    ctx.buffers[1] = "/repoA/file.lua"
@@ -166,15 +157,14 @@ local function test_saves_previous_project_and_resets_missing_project_cache()
       signs = {},
       save_file = "/global.json",
       per_project = true,
-      per_project_dir = "/bookmarks",
       cache = { data = {} },
       marks = nil,
    }
    local actions = load_actions(ctx, config)
    actions.setup()
 
-   local repo_a_file = "/bookmarks/hash__repoA.json"
-   local repo_b_file = "/bookmarks/hash__repoB.json"
+   local repo_a_file = "/repoA/.bookmarks"
+   local repo_b_file = "/repoB/.bookmarks"
    ctx.files[repo_a_file] = "repoA_data"
 
    ctx.buffers[1] = "/repoA/file.lua"
@@ -195,7 +185,6 @@ local function test_non_project_file_falls_back_to_global_save_file()
       signs = {},
       save_file = "/global.json",
       per_project = true,
-      per_project_dir = "/bookmarks",
       cache = { data = {} },
       marks = nil,
    }

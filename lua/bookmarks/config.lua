@@ -19,10 +19,6 @@ M.schema = {
       type = "boolean",
       default = false,
    },
-   per_project_dir = {
-      type = "string",
-      default = vim.fn.stdpath("data") .. "/bookmarks",
-   },
    sign_priority = {
       type = "number",
       default = 6,
